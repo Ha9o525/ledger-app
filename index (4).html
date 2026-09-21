@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en" style="color-scheme: dark;"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ledger</title>
+<meta name="theme-color" content="#0B0C0E">
+<meta name="description" content="A simple offline balance and expense tracker.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ledger">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0C0E;
+    --surface:#15171B;
+    --surface-raised:#1B1E23;
+    --line:#26282E;
+    --ink:#F2F1ED;
+    --ink-dim:#9A9CA3;
+    --ink-faint:#5D5F66;
+    --gold:#C9A24C;
+    --gold-soft:#3A3222;
+    --red:#C1554A;
+    --red-soft:#3A2320;
+    --radius:16px;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing:border-box;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  html{scroll-padding-top: env(safe-area-inset-top, 0px);}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100%;
+  }
+  .wrap{
+    max-width:480px;
+    margin:0 auto;
+    padding:clamp(24px, 6vw, 36px) clamp(16px, 5vw, 20px) 60px;
+  }
+  @media (min-width:700px){
+    .wrap{ max-width:560px; padding-top:56px; }
+  }
+  @media (min-width:1000px){
+    .wrap{ max-width:600px; padding-top:72px; }
+  }
+  .brand{
+    text-align:center;
+    color:var(--ink-faint);
+    font-size:13px;
+    letter-spacing:.04em;
+    margin-bottom:28px;
+  }
+  .hero{
+    text-align:center;
+    padding:8px 0 30px;
+  }
+  .hero-label{
+    color:var(--ink-dim);
+    font-size:14px;
+    margin-bottom:10px;
+  }
+  .hero-amount{
+    font-family:'Fraunces',serif;
+    font-weight:500;
+    font-size:clamp(38px, 11vw, 64px);
+    line-height:1.05;
+    letter-spacing:-0.01em;
+    font-variant-numeric: tabular-nums;
+    word-break:break-word;
+  }
+  @media (min-width:1000px){
+    .hero-amount{ font-size:72px; }
+  }
+  .hero-amount.negative{ color:var(--red); }
+  .actions{
+    display:flex;
+    gap:12px;
+    margin-bottom:38px;
+  }
+  .action-btn{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:16px 10px;
+    border-radius:14px;
+    border:1px solid var(--line);
+    background:var(--surface);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:clamp(13px, 3.6vw, 15px);
+    font-weight:600;
+    cursor:pointer;
+    transition:transform .12s ease, background .12s ease, border-color .12s ease;
+    min-height:48px;
+  }
+  .action-btn:active{ transform:scale(0.97); }
+  @media (hover:hover){
+    .action-btn:hover{ background:var(--surface-raised); }
+  }
+  .action-btn .sym{
+    font-size:18px;
+    width:22px;height:22px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    line-height:1;
+  }
+  .action-btn.income:hover{ border-color:var(--gold); }
+  .action-btn.income .sym{ background:var(--gold-soft); color:var(--gold); }
+  .action-btn.expense:hover{ border-color:var(--red); }
+  .action-btn.expense .sym{ background:var(--red-soft); color:var(--red); }
+
+  .archive{
+    border-top:1px solid var(--line);
+    padding-top:26px;
+  }
+  .archive-head{
+    display:flex;
+    align-items:baseline;
+    justify-content:space-between;
+    margin-bottom:16px;
+  }
+  .archive-title{
+    font-size:16px;
+    font-weight:600;
+  }
+  .tabs{
+    display:flex;
+    gap:6px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:3px;
+    margin-bottom:16px;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:11px 8px;
+    min-height:40px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+    font-size:13.5px;
+    font-weight:600;
+    color:var(--ink-dim);
+    cursor:pointer;
+    user-select:none;
+    transition:background .12s ease, color .12s ease;
+  }
+  .tab.active.income{ background:var(--gold-soft); color:var(--gold); }
+  .tab.active.expense{ background:var(--red-soft); color:var(--red); }
+
+  .list{
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .entry{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:13px 14px;
+  }
+  .entry-main{
+    flex:1;
+    min-width:0;
+  }
+  .entry-note{
+    font-size:14.5px;
+    font-weight:500;
+    color:var(--ink);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .entry-date{
+    font-size:12px;
+    color:var(--ink-faint);
+    margin-top:2px;
+  }
+  .entry-amount{
+    font-variant-numeric: tabular-nums;
+    font-size:15px;
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .entry-amount.income{ color:var(--gold); }
+  .entry-amount.expense{ color:var(--red); }
+  .entry-del{
+    background:none;
+    border:none;
+    color:var(--ink-faint);
+    font-size:16px;
+    cursor:pointer;
+    padding:10px 6px;
+    margin:-10px -6px -10px 0;
+    line-height:1;
+    border-radius:6px;
+  }
+  .entry-del:hover{ color:var(--ink); background:var(--surface-raised); }
+
+  .empty{
+    text-align:center;
+    color:var(--ink-faint);
+    font-size:13.5px;
+    padding:26px 10px;
+    border:1px dashed var(--line);
+    border-radius:12px;
+  }
+
+  .overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(6,7,8,0.66);
+    display:none;
+    align-items:flex-end;
+    justify-content:center;
+    z-index:50;
+    padding: max(0px, env(safe-area-inset-bottom, 0px));
+  }
+  .overlay.open{ display:flex; }
+  @media (min-width:560px){
+    .overlay{ align-items:center; }
+  }
+  .modal{
+    width:100%;
+    max-width:420px;
+    background:var(--surface-raised);
+    border:1px solid var(--line);
+    border-radius:20px 20px 0 0;
+    padding:24px 22px calc(22px + env(safe-area-inset-bottom, 0px));
+  }
+  @media (min-width:560px){
+    .modal{ border-radius:20px; }
+  }
+  .modal-title{
+    font-family:'Fraunces',serif;
+    font-size:22px;
+    font-weight:500;
+    margin-bottom:4px;
+  }
+  .modal-title.expense{ color:var(--red); }
+  .modal-title.income{ color:var(--gold); }
+  .modal-sub{
+    color:var(--ink-dim);
+    font-size:13.5px;
+    margin-bottom:20px;
+  }
+  .field{ margin-bottom:16px; }
+  .field label{
+    display:block;
+    font-size:12.5px;
+    color:var(--ink-dim);
+    margin-bottom:7px;
+  }
+  .field input{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--line);
+    border-radius:11px;
+    padding:13px 14px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    font-size:16px;
+    outline:none;
+  }
+  .field input:focus{ border-color:var(--ink-faint); }
+  .field input.amt{
+    font-variant-numeric: tabular-nums;
+    font-size:20px;
+    font-weight:600;
+  }
+  .modal-actions{
+    display:flex;
+    gap:10px;
+    margin-top:22px;
+  }
+  .btn{
+    flex:1;
+    padding:14px;
+    border-radius:11px;
+    border:1px solid var(--line);
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .btn-cancel{ background:transparent; color:var(--ink-dim); }
+  .btn-ok{ color:#0B0C0E; border:none; }
+  .btn-ok.income{ background:var(--gold); }
+  .btn-ok.expense{ background:var(--red); }
+  .error-msg{
+    color:var(--red);
+    font-size:12.5px;
+    margin-top:-8px;
+    margin-bottom:14px;
+    display:none;
+  }
+  .error-msg.show{ display:block; }
+
+  :focus-visible{ outline:2px solid var(--ink-dim); outline-offset:2px; }
+
+  @media (prefers-reduced-motion: reduce){
+    .action-btn{ transition:none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Ledger</div>
+
+  <div class="hero">
+    <div class="hero-label">Total balance</div>
+    <div class="hero-amount" id="balanceDisplay">0</div>
+  </div>
+
+  <div class="actions">
+    <button class="action-btn income" id="openIncome" type="button">
+      <span class="sym">+</span> Add income
+    </button>
+    <button class="action-btn expense" id="openExpense" type="button">
+      <span class="sym">−</span> Add expense
+    </button>
+  </div>
+
+  <div class="archive">
+    <div class="archive-head">
+      <div class="archive-title">Archive</div>
+    </div>
+    <div class="tabs">
+      <div class="tab active income" id="tabIncome" data-tab="income">Income</div>
+      <div class="tab expense" id="tabExpense" data-tab="expense">Expenses</div>
+    </div>
+    <div class="list" id="listContainer"></div>
+  </div>
+</div>
+
+<!-- Income modal -->
+<div class="overlay" id="incomeOverlay">
+  <div class="modal">
+    <div class="modal-title income">Add income</div>
+    <div class="modal-sub">Add money to your balance.</div>
+    <div class="field">
+      <label for="incomeAmount">Amount</label>
+      <input class="amt" id="incomeAmount" type="number" inputmode="decimal" step="any" min="0" placeholder="0">
+    </div>
+    <div class="field">
+      <label for="incomeSource">Where did it come from?</label>
+      <input id="incomeSource" type="text" placeholder="e.g. Salary, gift, sale...">
+    </div>
+    <div class="error-msg" id="incomeError">Enter an amount greater than 0.</div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="incomeCancel" type="button">Cancel</button>
+      <button class="btn btn-ok income" id="incomeOk" type="button">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Expense modal -->
+<div class="overlay" id="expenseOverlay">
+  <div class="modal">
+    <div class="modal-title expense">Add expense</div>
+    <div class="modal-sub">Take money out of your balance.</div>
+    <div class="field">
+      <label for="expenseAmount">Amount</label>
+      <input class="amt" id="expenseAmount" type="number" inputmode="decimal" step="any" min="0" placeholder="0">
+    </div>
+    <div class="field">
+      <label for="expenseReason">What did you spend it on?</label>
+      <input id="expenseReason" type="text" placeholder="e.g. Groceries, rent, transport...">
+    </div>
+    <div class="error-msg" id="expenseError">Enter an amount greater than 0.</div>
+    <div class="modal-actions">
+      <button class="btn btn-cancel" id="expenseCancel" type="button">Cancel</button>
+      <button class="btn btn-ok expense" id="expenseOk" type="button">OK</button>
+    </div>
+  </div>
+</div>
+
+<script id="app-state" type="application/json">{"income":[],"expenses":[]}</script>
+<script>
+(function(){
+  var STORAGE_KEY = 'ledger-state-v1';
+
+  var state;
+  try {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if(saved){
+      state = JSON.parse(saved);
+    } else {
+      state = JSON.parse(document.getElementById('app-state').textContent);
+    }
+  } catch(e){ state = {income:[], expenses:[]}; }
+  if(!state.income) state.income = [];
+  if(!state.expenses) state.expenses = [];
+
+  var currentTab = 'income';
+
+  function fmt(n){
+    var v = Math.round(n * 100) / 100;
+    return v.toLocaleString('en-US', { minimumFractionDigits: v % 1 === 0 ? 0 : 2, maximumFractionDigits: 2 });
+  }
+
+  function balance(){
+    var inc = state.income.reduce(function(s,e){ return s + e.amount; }, 0);
+    var exp = state.expenses.reduce(function(s,e){ return s + e.amount; }, 0);
+    return inc - exp;
+  }
+
+  function dateLabel(iso){
+    var d = new Date(iso);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  }
+
+  function render(){
+    var bal = balance();
+    var balEl = document.getElementById('balanceDisplay');
+    balEl.textContent = (bal < 0 ? '−' : '') + fmt(Math.abs(bal));
+    balEl.classList.toggle('negative', bal < 0);
+
+    document.getElementById('tabIncome').classList.toggle('active', currentTab === 'income');
+    document.getElementById('tabExpense').classList.toggle('active', currentTab === 'expense');
+
+    var list = currentTab === 'income' ? state.income : state.expenses;
+    var container = document.getElementById('listContainer');
+    container.innerHTML = '';
+
+    if(list.length === 0){
+      var empty = document.createElement('div');
+      empty.className = 'empty';
+      empty.textContent = currentTab === 'income'
+        ? 'No income recorded yet.'
+        : 'No expenses recorded yet.';
+      container.appendChild(empty);
+      return;
+    }
+
+    var sorted = list.slice().sort(function(a,b){ return new Date(b.date) - new Date(a.date); });
+    sorted.forEach(function(entry){
+      var row = document.createElement('div');
+      row.className = 'entry';
+
+      var main = document.createElement('div');
+      main.className = 'entry-main';
+      var note = document.createElement('div');
+      note.className = 'entry-note';
+      note.textContent = entry.note || (currentTab === 'income' ? 'Income' : 'Expense');
+      var date = document.createElement('div');
+      date.className = 'entry-date';
+      date.textContent = dateLabel(entry.date);
+      main.appendChild(note);
+      main.appendChild(date);
+
+      var amt = document.createElement('div');
+      amt.className = 'entry-amount ' + currentTab;
+      amt.textContent = (currentTab === 'income' ? '+' : '−') + fmt(entry.amount);
+
+      var del = document.createElement('button');
+      del.className = 'entry-del';
+      del.type = 'button';
+      del.setAttribute('aria-label', 'Delete entry');
+      del.textContent = '\u2715';
+      del.addEventListener('click', function(){
+        removeEntry(currentTab, entry.id);
+      });
+
+      row.appendChild(main);
+      row.appendChild(amt);
+      row.appendChild(del);
+      container.appendChild(row);
+    });
+  }
+
+  function persist(){
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch(e){ /* storage unavailable or full — app still works this session */ }
+  }
+
+  function addEntry(kind, amount, note){
+    var entry = {
+      id: Date.now().toString(36) + Math.random().toString(36).slice(2,7),
+      amount: amount,
+      note: note.trim(),
+      date: new Date().toISOString()
+    };
+    if(kind === 'income'){ state.income.push(entry); }
+    else { state.expenses.push(entry); }
+    persist();
+    render();
+  }
+
+  function removeEntry(kind, id){
+    var arr = kind === 'income' ? state.income : state.expenses;
+    var idx = arr.findIndex(function(e){ return e.id === id; });
+    if(idx > -1){ arr.splice(idx, 1); persist(); render(); }
+  }
+
+  // Tabs
+  document.getElementById('tabIncome').addEventListener('click', function(){ currentTab = 'income'; render(); });
+  document.getElementById('tabExpense').addEventListener('click', function(){ currentTab = 'expense'; render(); });
+
+  // Income modal
+  var incomeOverlay = document.getElementById('incomeOverlay');
+  var incomeAmount = document.getElementById('incomeAmount');
+  var incomeSource = document.getElementById('incomeSource');
+  var incomeError = document.getElementById('incomeError');
+
+  document.getElementById('openIncome').addEventListener('click', function(){
+    incomeAmount.value = '';
+    incomeSource.value = '';
+    incomeError.classList.remove('show');
+    incomeOverlay.classList.add('open');
+    setTimeout(function(){ incomeAmount.focus(); }, 50);
+  });
+  document.getElementById('incomeCancel').addEventListener('click', function(){
+    incomeOverlay.classList.remove('open');
+  });
+  incomeOverlay.addEventListener('click', function(e){
+    if(e.target === incomeOverlay) incomeOverlay.classList.remove('open');
+  });
+  document.getElementById('incomeOk').addEventListener('click', function(){
+    var val = parseFloat(incomeAmount.value);
+    if(!val || val <= 0){
+      incomeError.classList.add('show');
+      return;
+    }
+    addEntry('income', val, incomeSource.value);
+    incomeOverlay.classList.remove('open');
+    currentTab = 'income';
+    render();
+  });
+
+  // Expense modal
+  var expenseOverlay = document.getElementById('expenseOverlay');
+  var expenseAmount = document.getElementById('expenseAmount');
+  var expenseReason = document.getElementById('expenseReason');
+  var expenseError = document.getElementById('expenseError');
+
+  document.getElementById('openExpense').addEventListener('click', function(){
+    expenseAmount.value = '';
+    expenseReason.value = '';
+    expenseError.classList.remove('show');
+    expenseOverlay.classList.add('open');
+    setTimeout(function(){ expenseAmount.focus(); }, 50);
+  });
+  document.getElementById('expenseCancel').addEventListener('click', function(){
+    expenseOverlay.classList.remove('open');
+  });
+  expenseOverlay.addEventListener('click', function(e){
+    if(e.target === expenseOverlay) expenseOverlay.classList.remove('open');
+  });
+  document.getElementById('expenseOk').addEventListener('click', function(){
+    var val = parseFloat(expenseAmount.value);
+    if(!val || val <= 0){
+      expenseError.classList.add('show');
+      return;
+    }
+    addEntry('expense', val, expenseReason.value);
+    expenseOverlay.classList.remove('open');
+    currentTab = 'expense';
+    render();
+  });
+
+  render();
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('sw.js').catch(function(){ /* offline support unavailable */ });
+    });
+  }
+})();
+</script></body></html>
